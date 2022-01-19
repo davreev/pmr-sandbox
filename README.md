@@ -1,4 +1,6 @@
 # PMR Sandbox
 
-Experimenting with C++ 17 polymorphic memory resources (`std::pmr`)
+Experimenting with [polymorphic memory resources (PMR)](https://en.cppreference.com/w/cpp/header/memory_resource) in C++17
+
+
 
