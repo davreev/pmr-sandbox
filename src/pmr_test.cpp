@@ -17,8 +17,8 @@ struct DebugMemoryResource : public pmr::memory_resource
     pmr::memory_resource* upstream;
     std::size_t num_allocs{};
     std::size_t num_deallocs{};
-    std::size_t max_bytes{};
     std::size_t curr_bytes{};
+    std::size_t max_bytes{};
 
     DebugMemoryResource(pmr::memory_resource* upstream) :
         upstream{upstream} {}
@@ -172,8 +172,7 @@ void unordered_map_test_2(pmr::memory_resource* memory)
 
 void do_tests(pmr::memory_resource* memory)
 {
-    auto do_test = [=](void (*test)(pmr::memory_resource*), const char* context)
-    {
+    auto do_test = [=](void (*test)(pmr::memory_resource*), const char* context) {
         using Clock = std::chrono::high_resolution_clock;
         using Duration = std::chrono::milliseconds;
 
@@ -289,10 +288,10 @@ int main()
     // These use polymorphic memory resources (std::pmr)
     {
         default_resource_test();
-        buffer_resource_test();
         pool_resource_test();
-        pool_backed_buffer_resource_test();
+        buffer_resource_test();
         buffer_backed_pool_resource_test();
+        pool_backed_buffer_resource_test();
     }
 
     return 0;
