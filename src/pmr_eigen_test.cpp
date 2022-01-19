@@ -1,10 +1,12 @@
 #include <chrono>
 #include <cstdio>
 #include <iostream>
+#include <random>
 #include <vector>
 
 #include "eigen_memory_resource.h" // Must be included before Eigen headers
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 namespace pmr = std::pmr;
 
@@ -16,8 +18,8 @@ struct DebugMemoryResource : public pmr::memory_resource
     pmr::memory_resource* upstream;
     int num_allocs{};
     int num_deallocs{};
-    int max_bytes{};
     int curr_bytes{};
+    int max_bytes{};
 
     DebugMemoryResource(pmr::memory_resource* upstream) :
         upstream{upstream} {}
@@ -76,11 +78,21 @@ void dense_assign_test()
     }
 }
 
+void dense_sum_test()
+{
+    constexpr int n = 10;
+    Eigen::MatrixXd A{n, n};
+
+    constexpr int iters = 10000;
+    for (int i = 0; i < iters; ++i)
+    {
+        Eigen::MatrixXd B{n, n};
+        A += B;
+    }
+}
+
 void dense_mult_test()
 {
-    // NOTE(dr): Timings appear to be dominated by matrix multiplication here as
-    // it's O(n^3)
-
     constexpr int n = 10;
     Eigen::MatrixXd A{n, n};
 
@@ -92,47 +104,84 @@ void dense_mult_test()
     }
 }
 
-#if false
-
-void dense_decomp_test()
+template <typename Random>
+Eigen::SparseMatrix<double> make_random_sparse(Random&& rnd, double sparsity, int rows, int cols)
 {
-    constexpr int n = 16;
-    Eigen::MatrixXd A{n, n};
-    A.setRandom();
-    // std::cout << A << "\n\n";
+    pmr::memory_resource* mem = dr::get_eigen_memory_resource();
+    pmr::vector<Eigen::Triplet<double>> coeffs{mem};
 
+    for (int i = 0; i < rows; ++i)
     {
-        Eigen::BDCSVD<Eigen::MatrixXd> svd{A};
-        // std::cout << svd.singularValues() << "\n\n";
+        for (int j = 0; j < cols; ++j)
+        {
+            if (rnd() > sparsity)
+                coeffs.emplace_back(i, j, rnd());
+        }
     }
 
-    {
-        Eigen::JacobiSVD<Eigen::MatrixXd> svd{A};
-        // std::cout << svd.singularValues() << "\n\n";
-    }
+    Eigen::SparseMatrix<double> result{rows, cols};
+    result.setFromTriplets(coeffs.begin(), coeffs.end());
+    return result;
+}
 
-    {
-        Eigen::PartialPivLU<Eigen::MatrixXd> lu{A};
-        // std::cout << lu.matrixLU() << "\n\n";
-    }
+struct Random
+{
+    std::default_random_engine eng{};
+    std::uniform_real_distribution<double> dist{0.0, 1.0};
+    double operator()() { return dist(eng); }
+};
 
+void sparse_assign_test()
+{
+    constexpr int n = 10;
+    Random rnd{};
+    Eigen::SparseMatrix<double> A = make_random_sparse(rnd, 0.8, n, n);
+
+    constexpr int iters = 10000;
+    for (int i = 0; i < iters; ++i)
     {
-        Eigen::HouseholderQR<Eigen::MatrixXd> qr{A};
-        // std::cout << qr.matrixQR() << "\n\n";
+        Eigen::SparseMatrix<double> B = make_random_sparse(rnd, 0.8, n, n);
+        A = B;
     }
 }
 
-#endif
+void sparse_sum_test()
+{
+    constexpr int n = 10;
+    Random rnd{};
+    Eigen::SparseMatrix<double> A = make_random_sparse(rnd, 0.8, n, n);
+
+    constexpr int iters = 10000;
+    for (int i = 0; i < iters; ++i)
+    {
+        Eigen::SparseMatrix<double> B = make_random_sparse(rnd, 0.8, n, n);
+        A += B;
+    }
+}
+
+void sparse_mult_test()
+{
+    constexpr int n = 10;
+    Random rnd{};
+    Eigen::SparseMatrix<double> A = make_random_sparse(rnd, 0.8, n, n);
+
+    constexpr int iters = 10000;
+    for (int i = 0; i < iters; ++i)
+    {
+        Eigen::SparseMatrix<double> B = make_random_sparse(rnd, 0.8, n, n);
+        // A *= B; // Gives linker error
+        A = A * B;
+    }
+}
 
 void do_tests()
 {
-    auto do_test = [=](void (*test)(), const char* context)
-    {
+    auto do_test = [=](void (*test)(), const char* context) {
         using Clock = std::chrono::high_resolution_clock;
         using Duration = std::chrono::milliseconds;
 
         const auto start = Clock::now();
-        constexpr int n = 1000;
+        constexpr int n = 10;
 
         for (int i = 0; i < n; ++i)
             test();
@@ -142,8 +191,12 @@ void do_tests()
     };
 
     do_test(dense_assign_test, "dense assign test");
+    do_test(dense_sum_test, "dense sum test");
     do_test(dense_mult_test, "dense mult test");
-    // do_test(dense_decomp_test, "dense decomp test");
+
+    do_test(sparse_assign_test, "sparse assign test");
+    do_test(sparse_sum_test, "sparse sum test");
+    do_test(sparse_mult_test, "sparse mult test");
 }
 
 void default_resource_test()
@@ -220,10 +273,9 @@ void buffer_backed_pool_resource_test()
 int main()
 {
     default_resource_test();
-    // buffer_resource_test();
     pool_resource_test();
-    // pool_backed_buffer_resource_test();
-    // buffer_backed_pool_resource_test();
-
+    buffer_resource_test();
+    buffer_backed_pool_resource_test();
+    pool_backed_buffer_resource_test();
     return 0;
 }

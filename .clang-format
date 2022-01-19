@@ -19,7 +19,7 @@ BraceWrapping:
   AfterExternBlock: true
   BeforeCatch: true
   BeforeElse: true
-  BeforeLambdaBody: true
+  BeforeLambdaBody: false
   BeforeWhile: true
   SplitEmptyFunction: true
   SplitEmptyRecord: true
@@ -47,5 +47,6 @@ AlignTrailingComments: false
 
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: true
 
 MaxEmptyLinesToKeep: 1
