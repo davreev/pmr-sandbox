@@ -1,11 +1,11 @@
-#include <cstdio>
-
 #include <chrono>
 #include <charconv>
 #include <memory_resource>
 #include <vector>
 #include <string>
 #include <unordered_map>
+
+#include <fmt/core.h>
 
 namespace pmr = std::pmr;
 
@@ -183,7 +183,7 @@ void do_tests(pmr::memory_resource* memory)
             test(memory);
 
         const auto elapsed = std::chrono::duration_cast<Duration>(Clock::now() - start);
-        std::printf("%s (%lld ms)\n", context, static_cast<long long>(elapsed.count()));
+        fmt::print("{} ({} ms)\n", context, static_cast<long long>(elapsed.count()));
     };
 
     do_test(vector_test_1, "vector test 1");
@@ -196,30 +196,30 @@ void report(DebugMemoryResource* memory)
 {
     if (memory != nullptr)
     {
-        std::printf("num allocs: %lld\n", memory->num_allocs);
-        std::printf("num deallocs: %lld\n", memory->num_deallocs);
-        std::printf("max bytes: %lld\n", memory->max_bytes);
+        fmt::print("num allocs: {}\n", memory->num_allocs);
+        fmt::print("num deallocs: {}\n", memory->num_deallocs);
+        fmt::print("max bytes: {}\n", memory->max_bytes);
     }
     else
     {
-        std::printf("num allocs: ?\n");
-        std::printf("num deallocs: ?\n");
-        std::printf("max bytes: ?\n");
+        fmt::print("num allocs: ?\n");
+        fmt::print("num deallocs: ?\n");
+        fmt::print("max bytes: ?\n");
     }
 
-    std::printf("\n");
+    fmt::print("\n");
 }
 
 void no_resource_test()
 {
-    std::printf("no resource\n---\n");
+    fmt::print("no resource\n---\n");
     do_tests(nullptr);
     report(nullptr);
 }
 
 void default_resource_test()
 {
-    std::printf("default resource\n---\n");
+    fmt::print("default resource\n---\n");
     DebugMemoryResource db_mem{pmr::new_delete_resource()};
     do_tests(&db_mem);
     report(&db_mem);
@@ -227,7 +227,7 @@ void default_resource_test()
 
 void buffer_resource_test()
 {
-    std::printf("buffer resource\n---\n");
+    fmt::print("buffer resource\n---\n");
     DebugMemoryResource db_mem{pmr::new_delete_resource()};
 
     {
@@ -240,7 +240,7 @@ void buffer_resource_test()
 
 void pool_resource_test()
 {
-    std::printf("pool resource\n---\n");
+    fmt::print("pool resource\n---\n");
     DebugMemoryResource db_mem{pmr::new_delete_resource()};
 
     {
@@ -253,7 +253,7 @@ void pool_resource_test()
 
 void pool_backed_buffer_resource_test()
 {
-    std::printf("pool backed buffer resource\n---\n");
+    fmt::print("pool backed buffer resource\n---\n");
     DebugMemoryResource db_mem{pmr::new_delete_resource()};
 
     {
@@ -267,7 +267,7 @@ void pool_backed_buffer_resource_test()
 
 void buffer_backed_pool_resource_test()
 {
-    std::printf("buffer backed pool resource\n---\n");
+    fmt::print("buffer backed pool resource\n---\n");
     DebugMemoryResource db_mem{pmr::new_delete_resource()};
 
     {
